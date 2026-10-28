@@ -1,20 +1,149 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title class="titulo">Rendimiento académico</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content>
+  <ion-grid>
+    <ion-row>
+      <ion-col size="12" size-md="6">
+        <ion-card class="summary-card">
+          <ion-card-header>
+            <ion-card-title>Promedio general</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>{{ averageGrade | number: '1.1-2' }} / 5.0</ion-card-content>
+        </ion-card>
+      </ion-col>
+      <ion-col size="12" size-md="6">
+        <ion-card class="summary-card">
+          <ion-card-header>
+            <ion-card-title>Estudiantes</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>{{ students.length }}</ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+    <ion-row>
+      <ion-col size="12">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Filtrar por rango de nota</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-row>
+              <ion-col size="12" size-sm="6">
+                <ion-item>
+                  <ion-input
+                    type="number"
+                    inputmode="decimal"
+                    label="Nota mínima"
+                    labelPlacement="stacked"
+                    placeholder="0.0"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    [(ngModel)]="minGrade"
+                  ></ion-input>
+                </ion-item>
+              </ion-col>
+              <ion-col size="12" size-sm="6">
+                <ion-item>
+                  <ion-input
+                    type="number"
+                    inputmode="decimal"
+                    label="Nota máxima"
+                    labelPlacement="stacked"
+                    placeholder="5.0"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    [(ngModel)]="maxGrade"
+                  ></ion-input>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+            <p *ngIf="gradeFilterError" class="filter-error" role="alert">
+              {{ gradeFilterError }}
+            </p>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <p *ngIf="isLoadingStudents" class="status-message">Cargando estudiantes...</p>
+    <p *ngIf="apiError" class="status-message filter-error" role="alert">
+      {{ apiError }}
+    </p>
+
+    <ion-list *ngIf="!isLoadingStudents && !apiError">
+      <ion-item
+        *ngFor="let student of filteredStudents"
+        button
+        detail="false"
+        class="student-item"
+        (click)="openModal(student)"
+      >
+        <ion-avatar slot="start" aria-hidden="true">
+          <span>{{ getInitials(student.name) }}</span>
+        </ion-avatar>
+        <ion-label>
+          <h2>{{ student.name }}</h2>
+          <p>{{ student.email }}</p>
+          <p>Nota: {{ student.grade | number: '1.1-2' }}</p>
+          <p class="observation-preview">{{ student.referenceComment }}</p>
+          <p *ngIf="student.observation" class="observation-preview">
+            {{ student.observation }}
+          </p>
+        </ion-label>
+        <ion-badge slot="end" [color]="student.grade < 3 ? 'danger' : 'success'">
+          {{ student.grade < 3 ? 'REPROBADO' : 'APROBADO' }}
+        </ion-badge>
+      </ion-item>
+      <ion-item *ngIf="filteredStudents.length === 0 && !gradeFilterError">
+        <ion-label>No hay estudiantes en este rango.</ion-label>
+      </ion-item>
+    </ion-list>
+  </ion-grid>
 </ion-content>
+
+<ion-modal
+  [isOpen]="isModalOpen"
+  (ionModalDidDismiss)="closeModal()"
+  class="modal-confirmacion"
+>
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Observación académica</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeModal()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content *ngIf="selectedStudent as student" class="ion-padding">
+      <h2>{{ student.name }}</h2>
+      <p>{{ student.email }}</p>
+      <p>
+        Nota: {{ student.grade | number: '1.1-2' }} ·
+        {{ student.grade < 3 ? 'REPROBADO' : 'APROBADO' }}
+      </p>
+      <p class="reference-comment">{{ student.referenceComment }}</p>
+      <ion-item>
+        <ion-textarea
+          label="Observación"
+          labelPlacement="stacked"
+          placeholder="Redacta una observación académica"
+          rows="5"
+          autoGrow="true"
+          [(ngModel)]="observationDraft"
+        ></ion-textarea>
+      </ion-item>
+      <ion-button expand="block" (click)="saveObservation()">
+        Guardar observación
+      </ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
